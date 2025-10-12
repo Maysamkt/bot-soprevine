@@ -1,0 +1,2237 @@
+{
+  "name": "Prototipo C4C",
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "audio",
+        "input": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        2352,
+        -288
+      ],
+      "id": "02cddca3-6c0d-437e-a760-239bc56969c9",
+      "name": "Generate audio",
+      "credentials": {
+        "openAiApi": {
+          "id": "SvvgjEj63tZK95Vv",
+          "name": "Fabiano C4C"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataToSave": {
+          "values": [
+            {
+              "key": "phone",
+              "value": "={{ $json.phone_number }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executionData",
+      "typeVersion": 1.1,
+      "position": [
+        -1792,
+        720
+      ],
+      "id": "ece529ad-a19d-4678-b45b-58c0e97ddd78",
+      "name": "Execution Data"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('get id').first().json.id }}",
+        "contextWindowLength": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        640,
+        -128
+      ],
+      "id": "cda25689-5fb1-413a-af2e-e626018180b1",
+      "name": "memoria",
+      "credentials": {
+        "postgres": {
+          "id": "r9zdICk735p02OfG",
+          "name": "fabiano C4C"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        512,
+        -128
+      ],
+      "id": "ae65ac7b-4461-4b87-9720-d4901c331803",
+      "name": "openai",
+      "credentials": {
+        "openAiApi": {
+          "id": "SvvgjEj63tZK95Vv",
+          "name": "Fabiano C4C"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO users (phone_number, created_at, updated_at, temp_id)\nVALUES ('{{ $json.phone_number }}', '{{ $now.toISO() }}', '{{ $now.toISO() }}','{{ $json.phone_number}}')\nON CONFLICT (phone_number) DO NOTHING;\n\nSELECT * FROM users WHERE temp_id = '{{ $json.phone_number }}';\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        496,
+        -384
+      ],
+      "id": "222c915a-3dc3-450b-a04e-596d8ceee98a",
+      "name": "get id",
+      "credentials": {
+        "postgres": {
+          "id": "r9zdICk735p02OfG",
+          "name": "fabiano C4C"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTimeTool",
+      "typeVersion": 2,
+      "position": [
+        768,
+        -128
+      ],
+      "id": "40af7bd5-83cc-4413-900a-e288072873ef",
+      "name": "Data atual"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [
+        896,
+        -128
+      ],
+      "id": "dba44c8e-6c29-4729-87e5-58672afc5e96",
+      "name": "Calculator"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Lista todos os exames registrados para o usuário durante o fluxo.\nSó deve ser executada no encerramento do atendimento, após todas as perguntas e verificações de exames.\nServe para exibir um resumo dos exames recomendados e encerrar a conversa.",
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "user_exams",
+          "mode": "list",
+          "cachedResultName": "user_exams"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "user_id",
+              "value": "={{ $('get id').item.json.id }}"
+            }
+          ]
+        },
+        "options": {
+          "outputColumns": [
+            "exam_name"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        1120,
+        64
+      ],
+      "id": "f279df70-410a-40c7-85a0-2388205740f0",
+      "name": "busca_exames",
+      "credentials": {
+        "postgres": {
+          "id": "r9zdICk735p02OfG",
+          "name": "fabiano C4C"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Adiciona um exame à lista de exames recomendados para o usuário.\n\nNão chame esta função quando for buscar exames no final do fluxo.",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "user_exams",
+          "mode": "list",
+          "cachedResultName": "user_exams"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $('get id').item.json.id }}",
+            "created_at": "={{ $now }}",
+            "exam_name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('exam_name', `Aqui vai o nome do exame, por exemplo, PSA, colonoscopia, etc...`, 'string') }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "exam_name",
+              "displayName": "exam_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        1120,
+        -128
+      ],
+      "id": "51e06581-a119-460e-bda6-7a201c3348da",
+      "name": "adicionar_exame",
+      "credentials": {
+        "postgres": {
+          "id": "r9zdICk735p02OfG",
+          "name": "fabiano C4C"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Calcula a carga tabágica do usuário.",
+        "workflowId": {
+          "__rl": true,
+          "value": "gqGzz67wQXsXinaY",
+          "mode": "list",
+          "cachedResultName": "Calcula Carga Tabágica"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "quantidadePorDia": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('quantidadePorDia', ``, 'number') }}",
+            "anosFumados": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('anosFumados', ``, 'number') }}",
+            "tipoCigarro": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('tipoCigarro', `Tipos: [\n  \"cigarro-normal\",\n  \"cigarro-de-palha\",\n  \"charuto\",\n  \"cachimbo\",\n  \"narguile\",\n  \"cigarro-eletronico\"\n]`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "tipoCigarro",
+              "displayName": "tipoCigarro",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "quantidadePorDia",
+              "displayName": "quantidadePorDia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "anosFumados",
+              "displayName": "anosFumados",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1296,
+        48
+      ],
+      "id": "e450aa2f-e698-4799-b3a0-7d6d09d23e64",
+      "name": "calcula_carga_tabagica"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Adicione uma única vez a preferência de modo de contato do usuário",
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "users",
+          "mode": "list",
+          "cachedResultName": "users"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "updated_at": "={{ $now.toISO() }}",
+            "audio_or_text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('audio_or_text', `Opções: \"audio\" ou \"text\", exatamente assim.`, 'string') }}",
+            "id": "={{ $('get id').item.json.id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "audio_or_text",
+              "displayName": "audio_or_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone_number",
+              "displayName": "phone_number",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "temp_id",
+              "displayName": "temp_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        1472,
+        48
+      ],
+      "id": "694637ea-7924-4ff7-92e8-0918a6ed08fb",
+      "name": "adicionar_preferencia",
+      "credentials": {
+        "postgres": {
+          "id": "r9zdICk735p02OfG",
+          "name": "fabiano C4C"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "K2cQRBsCXgioqykP",
+          "mode": "list",
+          "cachedResultName": "My Sub-Workflow 1"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ String($('get id').item.json.id) }}"
+          },
+          "matchingColumns": [
+            "user_id"
+          ],
+          "schema": [
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1680,
+        -384
+      ],
+      "id": "62e57830-9949-4f2f-a4ea-eba13164a7d4",
+      "name": "Inserir informações",
+      "executeOnce": false,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "25a0c385-ab43-4bb6-82fb-d516c58aec2f",
+              "name": "output",
+              "value": "={{ $('AI AGENT').item.json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1904,
+        -384
+      ],
+      "id": "2fa3ceb7-58c9-4d1b-8a6f-d31b94b78cb6",
+      "name": "response"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "c4c/msg-bot",
+        "options": {
+          "binaryPropertyName": "data"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1296,
+        -384
+      ],
+      "id": "674726df-13f9-403d-8570-b3761bb4b409",
+      "name": "Webhook",
+      "webhookId": "1abc17d7-eca8-4219-96ef-07294036c521"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f188b9d9-2b6c-4dec-bcee-73f3e2e048d2",
+              "leftValue": "={{ $json.body.from }}",
+              "rightValue": "84758783",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        -1072,
+        -384
+      ],
+      "id": "745fefb0-b921-460f-9bb0-2ec485a89061",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "106ff20d-a110-4124-930a-fee1f2f06816",
+              "name": "phone_number",
+              "value": "={{ $('Webhook').item.json.body.from.split('@')[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "42fe1e4a-061b-463b-aa2b-7b6833bf7a12",
+              "name": "message",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "0c9729d6-6864-48be-be12-554e6241c54e",
+              "name": "wpp_url",
+              "value": "https://hydroponic-len-veridically.ngrok-free.dev/send-message",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        272,
+        -384
+      ],
+      "id": "02ce31d1-f439-47ba-b030-93f3023fadd8",
+      "name": "set dados"
+    },
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "Insira uma mensagem",
+        "options": {
+          "showWelcomeScreen": true,
+          "responseMode": "lastNode"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1088,
+        848
+      ],
+      "id": "ef64f1b7-d441-46b3-9859-84705c2ab110",
+      "name": "When chat message received",
+      "webhookId": "5666f280-4ec4-4a93-8a3c-a8c0854b5ec1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "106ff20d-a110-4124-930a-fee1f2f06816",
+              "name": "phone_number",
+              "value": "={{ $json.sessionId.slice(19) }}",
+              "type": "string"
+            },
+            {
+              "id": "42fe1e4a-061b-463b-aa2b-7b6833bf7a12",
+              "name": "message",
+              "value": "={{ $json.chatInput }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -864,
+        848
+      ],
+      "id": "bb23e8ef-bf9a-4f3e-83c1-58c466c2c7da",
+      "name": "set dados1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('When chat message received').first().json.chatInput }}",
+        "options": {
+          "systemMessage": "=🎯 OBJETIVO:\nVocê é uma assistente virtual de prevenção de câncer, empática, clara e precisa.\nSeu papel é guiar o usuário pela conversa de triagem e prevenção, sem sair do tema.\nNÃO invente dados, NÃO ofereça diagnósticos, NÃO fale de outros assuntos e NÃO faça recomendações fora das diretrizes abaixo.\nVocê pode mudar um pouco a escrita das mensagens para ser mais humanizado.\n\n🧠 EXECUÇÃO DE TOOLS (REGRA PRIORITÁRIA):\n- Sempre que o fluxo disser “Execute a tool ...”, você deve **chamar imediatamente a função correspondente**.\n- As ferramentas abaixo estão disponíveis como funções que você pode invocar diretamente.\n- Não apenas descreva a execução — chame a função de verdade.\n- Nunca diga que vai “registrar” ou “verificar”; apenas execute.\n- Sempre espere o retorno da função antes de continuar a conversa.\n\nTOOLS DISPONÍVEIS:\n1. adicionar_preferencia(preferencia)\n2. adicionar_exame(exame)\n3. calcula_carga_tabagica(tipo_cigarro, quant_por_dia, quantos_anos)\n4. busca_exames()\n5. agendar_abordagem\n\n⚙️ INSTRUÇÕES GERAIS:\n- Fale sempre de forma amigável, acolhedora e compreensível.\n- Nunca mencione que é uma IA.\n- NÃO alucine: só fale sobre o que consta neste fluxo.\n- Use emojis sutis e positivos para tornar o diálogo mais humano.\n- Sempre confirme respostas quando necessário.\n\n⚠️ REGRAS DE USO DAS TOOLS:\n- Só use a tool adicionar_exame() quando o usuário confirmar que NÃO fez o exame ou que está fora do prazo.\n- Nunca adicione exames antes de o usuário responder.\n- Nunca use adicionar_exame() dentro das mensagens de encerramento.\n- Só execute busca_exames() e agendar_abordagem() no final do fluxo, após concluir todas as perguntas aplicáveis.\n- Nunca avise que vai usar uma ferramenta ou que vai \"verificar\", \"consultar\" ou \"registrar\" algo.\n- Execute as ferramentas silenciosamente, sem mencionar nada sobre isso para o usuário.\n- Sempre aguarde o resultado da ferramenta antes de responder.\n- A resposta para o usuário deve vir após a execução da ferramenta, já contendo o resultado direto (como se fosse uma resposta natural).\n\n───────────────────────────────\n🩺 FLUXO COMPLETO\n───────────────────────────────\n\n1️⃣ MENSAGEM INICIAL\n👋 Olá! Tudo bem? 💙  \nSou sua assistente virtual de **prevenção em saúde**, aqui pra conversar com você sobre **cuidados e exames que ajudam a prevenir o câncer**.  \n\nAntes de começarmos, quero confirmar uma coisinha:  \nVocê *autoriza* que eu te faça algumas perguntas rápidas sobre sua saúde e prevenção?  \nEssas perguntas servem apenas para *te orientar sobre exames recomendados* e *não substituem uma consulta médica*.  \n(Se a resposta for positiva, continue. Não mande mais nada antes da confirmação do usuário)\n\n1️⃣ PRÓXIMA MENSAGEM\n\nVocê prefere seguir nossa conversa por mensagem ou por áudio? 🎧💬\n(1) Mensagem de texto\n(2) Áudio\n\nAssim que o usuário responder, execute imediatamente a tool adicionar_preferencia(resposta),  \nonde resposta deve ser \"text\" ou \"audio\", conforme a escolha do usuário.  \nEssa tool deve ser executada apenas uma vez, logo após essa resposta.\n\n1️⃣ PRÓXIMA MENSAGEM\n📍 Para começar, preciso de algumas informações rápidas, tudo bem?\n\nPerguntas (pergunte separadamente):\n1. Qual é o seu nome?\n2. Em que mês e ano você nasceu? (Não assuma o mês que o usuário nasceu se ele não falou. Insista em pegar o mês de nascimento.)\n3. Qual era o seu sexo ao nascer?\nPor favor, responda com (M) para Masculino ou (F) para Feminino.\n\n───────────────────────────────\n👩 SE MULHER:\n───────────────────────────────\nSe for mulher com MENOS DE 25 ANOS ou MAIOR QUE 80 ANOS, vá direto para a etapa 🏁 ENCERRAMENTO DO FLUXO.\n\n\n📅 IDADE MAIOR OU IGUAL A 25 ANOS e MENOR QUE 64 ANOS\nSeu preventivo (Papanicolau) está em dia? Você fez ele nos últimos 3 anos ou nos últimos 5 anos a pesquisa (exame) do HPV?\n(1) Sim\n(2) Não\n\nSe SIM:\nExcelente! 👏  \nIsso é muito importante para prevenir o câncer do colo do útero.\n\nSe o usuário responder que NÃO fez o exame ou está fora do prazo:\n🩺 O preventivo (Papanicolau) e o teste de HPV ajudam a evitar o câncer do colo do útero.  \nSão exames rápidos, gratuitos e feitos com cuidado na unidade de saúde.  \nExecute a tool adicionar_exame(\"Preventivo (Papanicolau)\") imediatamente (sem dizer que vai registrar).  \nDepois disso, siga para a próxima pergunta.\n\n───────────────────────────────\n📅 IDADE MAIOR OU IGUAL A 40 ANOS e MENOR QUE 75 ANOS\n🩻 Você fez mamografia (exame das mamas) este ano ou já faz mais de 1 ano?\n(1) Sim, fiz este ano\n(2) Não, faz mais de 1 ano\n\nSe o usuário responder que NÃO fez o exame ou está fora do prazo:\nExecute imediatamente a tool adicionar_exame(\"Mamografia\").  \nObrigado por compartilhar!  \n👉 A recomendação é fazer mamografia anual (uma vez ao ano), precisamos atualizar seu exame!  \nDepois disso, siga para a próxima pergunta.\n\nSe MENOS DE 1 ANO:\n👏 Muito bom! A mamografia é essencial pra detectar o câncer de mama cedo, quando o tratamento é mais eficaz.\n\n───────────────────────────────\n📅 IDADE MAIOR OU IGUAL A 45 ANOS\n🚽 Você já fez algum exame para prevenir o câncer do intestino? (Exames como colonoscopia nos últimos 10 anos ou sangue oculto nas fezes no último ano)\n(1) Sim\n(2) Não\n\nSe SIM:\n👏 Ótimo! Você está dentro do prazo de prevenção recomendado 💙\n\nSe o usuário responder que NÃO fez o exame ou está fora do prazo:\nExecute imediatamente a tool adicionar_exame(\"Colonoscopia\").  \nObrigado por compartilhar!  \n👉 A colonoscopia (ou exame de sangue oculto nas fezes) ajuda a prevenir o câncer do intestino.  \nDepois disso, siga para a próxima pergunta.\n\n───────────────────────────────\n📅 IDADE MAIOR OU IGUAL A 50 ANOS\n🚬 Você fuma ou já fumou em algum momento da vida? (Pode ser cigarro comum, palheiro, de palha, charuto, narguilé ou cigarro eletrônico)\n(1) Sim\n(2) Não\n\nSe SIM:\nQual tipo você usa ou usou?  \nA Cigarro comum\nB Cigarro de palha (1 vale por 2 cigarros comuns)  \nC Charuto (1 vale por 5 cigarros comuns)  \nD Cachimbo (1 vale por 3 cigarros comuns)  \nE Narguilé (1 sessão vale por 10 cigarros comuns)  \nF Cigarro eletrônico (1 cigarro eletrônico pode equivaler a 1 maço de 20 cigarros)\n\nQuantos por dia? \nE por quantos anos?\n\nExecute a tool calcula_carga_tabagica(tipo_cigarro, quant_por_dia, quantos_anos)\n\nSe CARGA TABÁGICA ≥ 20:\nExecute a tool adicionar_exame(\"Tomografia do tórax\") imediatamente.  \nObrigado pelas informações!  \nPela sua carga de fumo, você pode ter indicação de fazer um exame (Tomografia) do pulmão que ajuda a descobrir cedo sinais de câncer de pulmão.  \n\nSe CARGA TABÁGICA < 20:\nObrigado pelas informações!  \nPela sua carga de fumo, você está abaixo do limite de risco que indica rastreamento com Tomografia para câncer de pulmão.  \nMesmo assim, é sempre importante manter os exames em dia e evitar qualquer tipo de cigarro ou fumaça 💙\n\n───────────────────────────────\n👨 SE HOMEM:\n───────────────────────────────\nSe for homem com MENOS DE 45 ANOS, só vá para a etapa 🏁 ENCERRAMENTO DO FLUXO.\n\n📅 IDADE MAIOR OU IGUAL A 45 ANOS:\n🚽 Você já fez algum exame para prevenir o câncer do intestino? (Exames como colonoscopia nos últimos 10 anos ou sangue oculto nas fezes no último ano)\n(1) Sim\n(2) Não\n\nSe SIM:\n👏 Ok! Você está dentro do prazo de prevenção recomendado 💙\n\nSe o usuário responder que NÃO fez o exame ou está fora do prazo:\nExecute imediatamente a tool adicionar_exame(\"Colonoscopia\").  \nObrigado por compartilhar!  \n👉 A colonoscopia (ou exame de sangue oculto nas fezes) ajuda a prevenir o câncer do intestino.  \nDepois disso, siga para a próxima pergunta.\n\n───────────────────────────────\n📅 IDADE MAIOR OU IGUAL A 50 ANOS:\nVocê fez o exame de sangue PSA (próstata) no último ano?\n(1) Sim\n(2) Não\n\nSe SIM:\n👏 Ótimo! Continue de olho na sua saúde 💙\n\nSe o usuário responder que NÃO fez o exame ou está fora do prazo:\nExecute a tool adicionar_exame(\"Exame de Sangue PSA\") imediatamente.  \n👉 O PSA é um exame de sangue simples que ajuda a identificar sinais precoces de câncer de próstata, principalmente em homens a partir dos 50 anos ou a partir dos 45 anos se houver histórico familiar.\nDepois disso, siga para a próxima pergunta.\n\n🚬 Você fuma ou já fumou em algum momento da vida?  \n→ Segue o mesmo fluxo de cálculo de carga tabágica descrito acima na parte da mulher.\n\n\n\n───────────────────────────────\n🏁 ENCERRAMENTO DO FLUXO\n───────────────────────────────\n- Se o usuário ainda não atingiu a idade mínima para os exames de rastreamento, não diga nada sobre isso. Apenas finalize o fluxo normalmente, sem comentários sobre idade ou elegibilidade.\n\nQuando a pessoa não se encaixar mais nas idades ou quando acabar o fluxo:\nExecute a tool busca_exames()\n\nSe NÃO houver exames identificados:\nExecute a tool agendar_abordagem()  \nMensagem:  \n💙 Tudo certo! No momento, não há exames pendentes.  \nContinue cuidando da sua saúde! Vamos te acompanhar e te lembrar dos próximos passos daqui a 1 ano. Aqui vão algumas dicas:\n\n\nE executa a tool envia_cartilha().\n\n\nSe HOUVER exames identificados:\nMensagem:  \nConforme analisamos suas respostas, você é candidato(a) para realizar os seguintes exames:  \n📋 listar exames, 1 em cada linha, com as descrições abaixo (mandar SOMENTE os que o usuário precisar):\n🎀Mamografia\n- É o exame ideal pra avaliar a saúde das mamas. Pode incomodar um pouquinho, mas é rápido e pode salvar vidas.\n\n💩 Colonoscopia ou Pesquisa de sangue oculto nas fezes\n- É parecida com a endoscopia, só que serve pra ver o intestino por dentro ou pode fazer o exame mais simples, feito com uma amostra das suas fezes, que ajuda a identificar problemas no intestino antes de virar algo sério.\n\n🌸 Preventivo (Papanicolau)\n- É muito importante, mesmo se você não estiver com vida sexual ativa agora, mas já teve em algum momento.\n\n🫁 Tomografia de tórax\n- É um exame rápido: você entra na máquina, fica paradinho por alguns minutos e já sai. No seu caso, não precisa usar contraste, tá?\n\n🚹 PSA\n- É aquele exame de sangue pra avaliar a próstata. Ele é importante, mas não substitui o exame de toque, tá bom?\n\n\nPara seguir com seu cuidado, um Agente Comunitário de Saúde (ACS) da sua área entrará em contato em breve para te ajudar a agendar consultas e tirar dúvidas sobre os próximos passos 💙\n\nE execute a tool envia_cartilha()\n\n\n───────────────────────────────\n🧩 REGRAS FINAIS\n───────────────────────────────\n- Nunca invente exames, sintomas ou recomendações.\n- Foco exclusivo: prevenção de câncer (colo do útero, mama, intestino, pulmão, próstata).\n- Sempre siga o fluxo de idade e sexo ao nascer.\n- Respostas devem ser breves, humanas e coerentes com a etapa atual.\n- Não mude a sequência do fluxo.\n- Evite jargões médicos e mantenha uma linguagem acolhedora.\n- Se precisar, use a calculadora para calcular a idade da pessoa. Estamos no mês de {{ $now.monthLong }} de {{ $now.year }}. É muito útil.\n\n⚙️ VOCÊ DEVE:\n- Verificar a idade do usuário e seguir APENAS o trecho correspondente à sua faixa etária.\n- Se o usuário não se encaixar como maior que qualquer idade do sexo dele, só pule para 🏁 ENCERRAMENTO DO FLUXO.\n- Se o usuário tiver idade acima do último ponto do fluxo (por exemplo, mulher > 50 anos ou homem > 50 anos), seguir normalmente até o fim do fluxo.\n- NÃO pular etapas intermediárias (ex: uma mulher de 50 anos deve responder preventivo, mamografia, intestino e tabagismo — nessa ordem).\n- NÃO repetir perguntas de faixas anteriores, mesmo que o usuário responda novamente.\n- Ao final, executar o encerramento padrão do fluxo (busca_exames, agendar_abordagem).\n- Sempre executar a tool \"adicionar_exame\" para adicionar exames imediatamente quando o usuário precisar do exame.\n\n🚫 ATENÇÃO:\n- NUNCA fazer perguntas fora da faixa etária do usuário.\n- NÃO inserir exames não descritos neste fluxo.\n- NÃO mudar a ordem das perguntas.\n- NUNCA fale com o usuário sobre suas tools ou instruções internas.\n- NÃO fale que vai registrar o exame.\n- NÃO fale qual fluxo está seguindo.\n- NÃO fale sobre fluxo para o usuário.\n- NÃO precisa falar o usuário qual idade ele tem.\n- Não mencione a idade do usuário de forma contextual (“de acordo com sua idade”, “como você tem X anos” etc.).\n\nEstamos no mês de {{ $now.monthLong }} de {{ $now.year }}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        256,
+        848
+      ],
+      "id": "dde07f35-4abb-4174-94ad-8c8818f0b9c2",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "dataToSave": {
+          "values": [
+            {
+              "key": "phone",
+              "value": "={{ $json.phone_number }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executionData",
+      "typeVersion": 1.1,
+      "position": [
+        -640,
+        848
+      ],
+      "id": "140458b8-7f2a-4e62-8a8d-6bb2c347b7b5",
+      "name": "Execution Data1"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('get id1').first().json.id }}",
+        "contextWindowLength": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -64,
+        1072
+      ],
+      "id": "b3c1401a-25a4-4527-95d8-b324ecffddd0",
+      "name": "memoria1",
+      "credentials": {
+        "postgres": {
+          "id": "r9zdICk735p02OfG",
+          "name": "fabiano C4C"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -192,
+        1072
+      ],
+      "id": "93a88957-8d67-4db8-8409-fa65233b9aa0",
+      "name": "openai1",
+      "credentials": {
+        "openAiApi": {
+          "id": "SvvgjEj63tZK95Vv",
+          "name": "Fabiano C4C"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO users (phone_number, created_at, updated_at, temp_id)\nVALUES ('{{ $json.phone_number }}', '{{ $now.toISO() }}', '{{ $now.toISO() }}','{{ $('When chat message received').item.json.sessionId }}')\nON CONFLICT (phone_number) DO NOTHING;\n\nSELECT * FROM users WHERE temp_id = '{{ $('When chat message received').item.json.sessionId }}';\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -416,
+        848
+      ],
+      "id": "c4a643ea-6b3f-42ad-9768-e7fd46550469",
+      "name": "get id1",
+      "credentials": {
+        "postgres": {
+          "id": "r9zdICk735p02OfG",
+          "name": "fabiano C4C"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTimeTool",
+      "typeVersion": 2,
+      "position": [
+        64,
+        1072
+      ],
+      "id": "f0bf5920-55e3-42b8-a9a4-038ae62edad3",
+      "name": "Data atual1"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [
+        192,
+        1072
+      ],
+      "id": "2d0514a0-56cd-4fe8-9cd0-477c0efb1cac",
+      "name": "Calculator1"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Lista todos os exames registrados para o usuário durante o fluxo.\nSó deve ser executada no encerramento do atendimento, após todas as perguntas e verificações de exames.\nServe para exibir um resumo dos exames recomendados e encerrar a conversa.",
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "user_exams",
+          "mode": "list",
+          "cachedResultName": "user_exams"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "user_id",
+              "value": "={{ $('get id1').item.json.id }}"
+            }
+          ]
+        },
+        "options": {
+          "outputColumns": [
+            "exam_name"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        320,
+        1072
+      ],
+      "id": "db11931c-bc4a-4a7e-94bd-612894cacd8a",
+      "name": "busca_exames1",
+      "credentials": {
+        "postgres": {
+          "id": "r9zdICk735p02OfG",
+          "name": "fabiano C4C"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Adiciona um exame à lista de exames recomendados para o usuário.\n\nNão chame esta função quando for buscar exames no final do fluxo.",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "user_exams",
+          "mode": "list",
+          "cachedResultName": "user_exams"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $('get id1').item.json.id }}",
+            "created_at": "={{ $now }}",
+            "exam_name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('exam_name', `Aqui vai o nome do exame, por exemplo, Exame de Sangue PSA, colonoscopia, etc...`, 'string') }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "exam_name",
+              "displayName": "exam_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        448,
+        1072
+      ],
+      "id": "39a03e93-8d68-4827-ab1b-74d0a26494f4",
+      "name": "adicionar_exame1",
+      "credentials": {
+        "postgres": {
+          "id": "r9zdICk735p02OfG",
+          "name": "fabiano C4C"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Calcula a carga tabágica do usuário.",
+        "workflowId": {
+          "__rl": true,
+          "value": "gqGzz67wQXsXinaY",
+          "mode": "list",
+          "cachedResultName": "Calcula Carga Tabágica"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "quantidadePorDia": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('quantidadePorDia', ``, 'number') }}",
+            "anosFumados": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('anosFumados', ``, 'number') }}",
+            "tipoCigarro": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('tipoCigarro', `Tipos: [\n  \"cigarro-normal\",\n  \"cigarro-de-palha\",\n  \"charuto\",\n  \"cachimbo\",\n  \"narguile\",\n  \"cigarro-eletronico\"\n]`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "tipoCigarro",
+              "displayName": "tipoCigarro",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "quantidadePorDia",
+              "displayName": "quantidadePorDia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "anosFumados",
+              "displayName": "anosFumados",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        576,
+        1072
+      ],
+      "id": "6fff9290-e17f-4b2a-a832-342976656b4b",
+      "name": "calcula_carga_tabagica1"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Adicione uma única vez a preferência de modo de contato do usuário",
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "users",
+          "mode": "list",
+          "cachedResultName": "users"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "updated_at": "={{ $now.toISO() }}",
+            "audio_or_text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('audio_or_text', `Opções: \"audio\" ou \"text\", exatamente assim.`, 'string') }}",
+            "id": "={{ $('get id1').item.json.id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "audio_or_text",
+              "displayName": "audio_or_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone_number",
+              "displayName": "phone_number",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "temp_id",
+              "displayName": "temp_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        704,
+        1072
+      ],
+      "id": "6d8e4494-a30e-42e7-9c3c-722799005e03",
+      "name": "adicionar_preferencia1",
+      "credentials": {
+        "postgres": {
+          "id": "r9zdICk735p02OfG",
+          "name": "fabiano C4C"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "K2cQRBsCXgioqykP",
+          "mode": "list",
+          "cachedResultName": "My Sub-Workflow 1"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ String($('get id1').item.json.id) }}"
+          },
+          "matchingColumns": [
+            "user_id"
+          ],
+          "schema": [
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1040,
+        848
+      ],
+      "id": "f94a845d-c6a7-4d8a-8353-8848a2fef12f",
+      "name": "Inserir informações1",
+      "executeOnce": false,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "25a0c385-ab43-4bb6-82fb-d516c58aec2f",
+              "name": "output",
+              "value": "={{ $('AI Agent').item.json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1264,
+        848
+      ],
+      "id": "3aa9d292-a702-4370-943a-edb247b6b87b",
+      "name": "response1"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "user_reminders",
+          "mode": "list",
+          "cachedResultName": "user_reminders"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $('get id').item.json.id }}",
+            "reminder_date": "={{ $now.plus(1, 'year') }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reminder_date",
+              "displayName": "reminder_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sent",
+              "displayName": "sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        1312,
+        -128
+      ],
+      "id": "61f2d0a0-b06d-41a8-8240-bdeeab2d5274",
+      "name": "agendar_abordagem",
+      "credentials": {
+        "postgres": {
+          "id": "r9zdICk735p02OfG",
+          "name": "fabiano C4C"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "user_reminders",
+          "mode": "list",
+          "cachedResultName": "user_reminders"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $('get id').item.json.id }}",
+            "reminder_date": "={{ $now.plus(1, 'year') }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reminder_date",
+              "displayName": "reminder_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sent",
+              "displayName": "sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        832,
+        1072
+      ],
+      "id": "4cb0d5ed-1fe0-4c9b-8b80-a6501a531acc",
+      "name": "agendar_abordagem1",
+      "credentials": {
+        "postgres": {
+          "id": "r9zdICk735p02OfG",
+          "name": "fabiano C4C"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Envio da cartilha",
+        "method": "POST",
+        "url": "={{ $('set dados').first().json.wpp_url }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "={{ $('set dados').first().json.phone_number }}"
+            },
+            {
+              "name": "message",
+              "value": "=💙 8 DICAS DE PREVENÇÃO DE CÂNCER 💙\n\n1️⃣ NÃO FUME 🚭\nO cigarro causa mais de 15 tipos de câncer!\n💪 Precisa de ajuda? Ligue 136 (gratuito)\n\n2️⃣ MEXA O CORPO 🏃\n30 min/dia, 5 dias por semana\nExemplos:\n🚶 Caminhar\n💃 Dançar\n🏠 Limpar a casa\n\n3️⃣ COMA BEM 🥗\n✅ MAIS: frutas, verduras, arroz e feijão\n❌ MENOS: carne vermelha, salsicha, fast food\n\n4️⃣ MANTENHA PESO SAUDÁVEL ⚖️\nObesidade aumenta o risco de 13 tipos de câncer\n💡 Não precisa ficar magra(o), só saudável!\n\n5️⃣ EVITE ÁLCOOL 🍺\nBebida alcoólica pode causar câncer de:\n👄 Boca\n🗣 Garganta\n🫀 Fígado\n💩 Intestino\n🎀 Mama\n\n6️⃣ PROTEJA-SE DO SOL ☀️\n🧴 Use protetor solar TODO DIA\n🧢 Boné ou chapéu\n🌳 Ficar na sombra\n⏰ Evitar sol das 10h às 16h\n\n7️⃣ VACINE-SE 💉\n💉 Vacina contra HPV:\n👧 Meninas 9-14 anos\n👦 Meninos 11-14 anos\n\n💉 Vacina Hepatite B:\n👥 Todas as idades\nGRATUITAS no SUS!\n\n8️⃣ CONHEÇA SEU CORPO 🔍\nProcure a UBS se notar:\n• Caroço no seio\n• Sangue no xixi ou cocô\n• Ferida que não cicatriza\n• Tosse por +3 semanas\n\n💡 Lembre-se: o câncer no começo não dói!"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        1472,
+        -128
+      ],
+      "id": "775c3137-018b-4b63-8691-59e3d5d9fb26",
+      "name": "enviar_cartilha"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Webhook').item.json.body.hasMedia }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "false",
+                      "singleValue": true
+                    },
+                    "id": "5a273896-c97b-48ac-8597-9118795d7207"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "texto"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1a4487f5-35ab-4b05-8fdb-3754de8326a8",
+                    "leftValue": "={{ $('Webhook').item.json.body.audioData }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "object",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "audio"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -848,
+        -400
+      ],
+      "id": "c03b5b84-99f4-48ab-b6be-c7393f7916f3",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e8c9050a-f8ae-4f32-9573-713d302251d2",
+              "name": "audio_base64",
+              "value": "={{ $('Webhook').item.json.body.audioData.base64 }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -624,
+        -288
+      ],
+      "id": "9915e5b1-8f88-4c57-9e4a-ae8e63e0b83b",
+      "name": "set audio"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "audio_base64",
+        "options": {
+          "fileName": "audio.mp3"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        -400,
+        -288
+      ],
+      "id": "535e02d6-027c-4614-a45e-6607eec0751b",
+      "name": "convert to file"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -176,
+        -288
+      ],
+      "id": "53a8f90e-1be6-4bd7-80dc-bb7575b21763",
+      "name": "transcribe",
+      "credentials": {
+        "openAiApi": {
+          "id": "SvvgjEj63tZK95Vv",
+          "name": "Fabiano C4C"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ef9526e3-d4dd-4361-a07b-d4d4aa7b57e0",
+              "name": "text",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        48,
+        -288
+      ],
+      "id": "57e39a1c-d73a-4114-8d13-0ed7690e8374",
+      "name": "set msg audio"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d898ddba-4239-402d-bc1b-76c556fa29cc",
+              "name": "text",
+              "value": "={{ $('Webhook').item.json.body.body }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        48,
+        -480
+      ],
+      "id": "d3bd822b-ce62-4600-9475-8395b4295566",
+      "name": "set msg"
+    },
+    {
+      "parameters": {
+        "operation": "binaryToPropery",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        2576,
+        -288
+      ],
+      "id": "5b2cedcd-f26e-4858-af3a-ee1ea146bcf0",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('set dados').item.json.wpp_url }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "={{ $('set dados').first().json.phone_number }}"
+            },
+            {
+              "name": "audioBase64",
+              "value": "={{ $json.data }}"
+            },
+            {
+              "name": "mimeType",
+              "value": "audio/ogg"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2800,
+        -288
+      ],
+      "id": "df80d0c1-12a9-4308-ab66-263bfb7fd424",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('get id').item.json.audio_or_text }}",
+                    "rightValue": "text",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "7ad22272-ef57-4bd8-94eb-18594a638437"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "8f887520-c544-4a98-8a43-fd70b20295b0",
+                    "leftValue": "={{ $('get id').item.json.audio_or_text }}",
+                    "rightValue": "audio",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "audio"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2128,
+        -384
+      ],
+      "id": "f01f0bda-9205-4c65-ae88-29ab23c895b6",
+      "name": "switch txt/audio"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('set dados').item.json.wpp_url }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "={{ $('set dados').first().json.phone_number }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2352,
+        -480
+      ],
+      "id": "78b08067-d7ad-4db3-9888-cf30361e8fa5",
+      "name": "send message"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('set dados').first().json.message }}",
+        "options": {
+          "systemMessage": "=🎯 OBJETIVO:\nVocê é uma assistente virtual de prevenção de câncer, empática, clara e precisa.\nSeu papel é guiar o usuário pela conversa de triagem e prevenção, sem sair do tema.\nNÃO invente dados, NÃO ofereça diagnósticos, NÃO fale de outros assuntos e NÃO faça recomendações fora das diretrizes abaixo.\nVocê pode mudar um pouco a escrita das mensagens para ser mais humanizado.\nVocê entende áudios (eles vêm como texto para você).\nVocê consegue enviar áudios (mas você sempre deve enviar como texto, porque depois será transformado em áudio.)\n\n🧠 EXECUÇÃO DE TOOLS (REGRA PRIORITÁRIA):\n- Sempre que o fluxo disser “Execute a tool ...”, você deve **chamar imediatamente a função correspondente**.\n- As ferramentas abaixo estão disponíveis como funções que você pode invocar diretamente.\n- Não apenas descreva a execução — chame a função de verdade.\n- Nunca diga que vai “registrar” ou “verificar”; apenas execute.\n- Sempre espere o retorno da função antes de continuar a conversa.\n\nTOOLS DISPONÍVEIS:\n1. adicionar_preferencia(preferencia)\n2. adicionar_exame(exame)\n3. calcula_carga_tabagica(tipo_cigarro, quant_por_dia, quantos_anos)\n4. busca_exames()\n5. agendar_abordagem\n\n⚙️ INSTRUÇÕES GERAIS:\n- Fale sempre de forma amigável, acolhedora e compreensível.\n- Nunca mencione que é uma IA.\n- NÃO alucine: só fale sobre o que consta neste fluxo.\n- Use emojis sutis e positivos para tornar o diálogo mais humano.\n- Sempre confirme respostas quando necessário.\n\n⚠️ REGRAS DE USO DAS TOOLS:\n- Só use a tool adicionar_exame() quando o usuário confirmar que NÃO fez o exame ou que está fora do prazo.\n- Nunca adicione exames antes de o usuário responder.\n- Nunca use adicionar_exame() dentro das mensagens de encerramento.\n- Só execute busca_exames() e agendar_abordagem() no final do fluxo, após concluir todas as perguntas aplicáveis.\n- Nunca avise que vai usar uma ferramenta ou que vai \"verificar\", \"consultar\" ou \"registrar\" algo.\n- Execute as ferramentas silenciosamente, sem mencionar nada sobre isso para o usuário.\n- Sempre aguarde o resultado da ferramenta antes de responder.\n- A resposta para o usuário deve vir após a execução da ferramenta, já contendo o resultado direto (como se fosse uma resposta natural).\n\n───────────────────────────────\n🩺 FLUXO COMPLETO\n───────────────────────────────\n\n1️⃣ MENSAGEM INICIAL\n👋 Olá! Tudo bem? 💙  \nSou sua assistente virtual de **prevenção em saúde**, aqui pra conversar com você sobre **cuidados e exames que ajudam a prevenir o câncer**.  \n\nAntes de começarmos, quero confirmar uma coisinha:  \nVocê *autoriza* que eu te faça algumas perguntas rápidas sobre sua saúde e prevenção?  \nEssas perguntas servem apenas para *te orientar sobre exames recomendados* e *não substituem uma consulta médica*.  \n(Se a resposta for positiva, continue. Não mande mais nada antes da confirmação do usuário)\n\n1️⃣ PRÓXIMA MENSAGEM\n\nVocê prefere seguir nossa conversa por mensagem ou por áudio? 🎧💬\n(1) Mensagem de texto\n(2) Áudio\n\nAssim que o usuário responder, execute imediatamente a tool adicionar_preferencia(resposta),  \nonde resposta deve ser \"text\" ou \"audio\", conforme a escolha do usuário.  \nEssa tool deve ser executada apenas uma vez, logo após essa resposta.\n\n1️⃣ PRÓXIMA MENSAGEM\n📍 Para começar, preciso de algumas informações rápidas, tudo bem?\n\nPerguntas (pergunte separadamente):\n1. Qual é o seu nome?\n2. Em que mês e ano você nasceu? (Não assuma o mês que o usuário nasceu se ele não falou. Insista em pegar o mês de nascimento.)\n3. Qual era o seu sexo ao nascer?\nPor favor, responda com (M) para Masculino ou (F) para Feminino.\n\n───────────────────────────────\n👩 SE MULHER:\n───────────────────────────────\nSe for mulher com MENOS DE 25 ANOS ou MAIOR QUE 80 ANOS, vá direto para a etapa 🏁 ENCERRAMENTO DO FLUXO.\n\n\n📅 IDADE MAIOR OU IGUAL A 25 ANOS e MENOR QUE 64 ANOS\nSeu preventivo (Papanicolau) está em dia? Você fez ele nos últimos 3 anos ou nos últimos 5 anos a pesquisa (exame) do HPV?\n(1) Sim\n(2) Não\n\nSe SIM:\nExcelente! 👏  \nIsso é muito importante para prevenir o câncer do colo do útero.\n\nSe o usuário responder que NÃO fez o exame ou está fora do prazo:\n🩺 O preventivo (Papanicolau) e o teste de HPV ajudam a evitar o câncer do colo do útero.  \nSão exames rápidos, gratuitos e feitos com cuidado na unidade de saúde.  \nExecute a tool adicionar_exame(\"Preventivo (Papanicolau)\") imediatamente (sem dizer que vai registrar).  \nDepois disso, siga para a próxima pergunta.\n\n───────────────────────────────\n📅 IDADE MAIOR OU IGUAL A 40 ANOS e MENOR QUE 75 ANOS\n🩻 Você fez mamografia (exame das mamas) este ano ou já faz mais de 1 ano?\n(1) Sim, fiz este ano\n(2) Não, faz mais de 1 ano\n\nSe o usuário responder que NÃO fez o exame ou está fora do prazo:\nExecute imediatamente a tool adicionar_exame(\"Mamografia\").  \nObrigado por compartilhar!  \n👉 A recomendação é fazer mamografia anual (uma vez ao ano), precisamos atualizar seu exame!  \nDepois disso, siga para a próxima pergunta.\n\nSe MENOS DE 1 ANO:\n👏 Muito bom! A mamografia é essencial pra detectar o câncer de mama cedo, quando o tratamento é mais eficaz.\n\n───────────────────────────────\n📅 IDADE MAIOR OU IGUAL A 45 ANOS\n🚽 Você já fez algum exame para prevenir o câncer do intestino? (Exames como colonoscopia nos últimos 10 anos ou sangue oculto nas fezes no último ano)\n(1) Sim\n(2) Não\n\nSe SIM:\n👏 Ótimo! Você está dentro do prazo de prevenção recomendado 💙\n\nSe o usuário responder que NÃO fez o exame ou está fora do prazo:\nExecute imediatamente a tool adicionar_exame(\"Colonoscopia\").  \nObrigado por compartilhar!  \n👉 A colonoscopia (ou exame de sangue oculto nas fezes) ajuda a prevenir o câncer do intestino.  \nDepois disso, siga para a próxima pergunta.\n\n───────────────────────────────\n📅 IDADE MAIOR OU IGUAL A 50 ANOS\n🚬 Você fuma ou já fumou em algum momento da vida? (Pode ser cigarro comum, palheiro, de palha, charuto, narguilé ou cigarro eletrônico)\n(1) Sim\n(2) Não\n\nSe SIM:\nQual tipo você usa ou usou?  \nA Cigarro comum\nB Cigarro de palha (1 vale por 2 cigarros comuns)  \nC Charuto (1 vale por 5 cigarros comuns)  \nD Cachimbo (1 vale por 3 cigarros comuns)  \nE Narguilé (1 sessão vale por 10 cigarros comuns)  \nF Cigarro eletrônico (1 cigarro eletrônico pode equivaler a 1 maço de 20 cigarros)\n\nQuantos por dia? \nE por quantos anos?\n\nExecute a tool calcula_carga_tabagica(tipo_cigarro, quant_por_dia, quantos_anos)\n\nSe CARGA TABÁGICA ≥ 20:\nExecute a tool adicionar_exame(\"Tomografia do tórax\") imediatamente.  \nObrigado pelas informações!  \nPela sua carga de fumo, você pode ter indicação de fazer um exame (Tomografia) do pulmão que ajuda a descobrir cedo sinais de câncer de pulmão.  \n\nSe CARGA TABÁGICA < 20:\nObrigado pelas informações!  \nPela sua carga de fumo, você está abaixo do limite de risco que indica rastreamento com Tomografia para câncer de pulmão.  \nMesmo assim, é sempre importante manter os exames em dia e evitar qualquer tipo de cigarro ou fumaça 💙\n\n───────────────────────────────\n👨 SE HOMEM:\n───────────────────────────────\nSe for homem com MENOS DE 45 ANOS, só vá para a etapa 🏁 ENCERRAMENTO DO FLUXO.\n\n📅 IDADE MAIOR OU IGUAL A 45 ANOS:\n🚽 Você já fez algum exame para prevenir o câncer do intestino? (Exames como colonoscopia nos últimos 10 anos ou sangue oculto nas fezes no último ano)\n(1) Sim\n(2) Não\n\nSe SIM:\n👏 Ok! Você está dentro do prazo de prevenção recomendado 💙\n\nSe o usuário responder que NÃO fez o exame ou está fora do prazo:\nExecute imediatamente a tool adicionar_exame(\"Colonoscopia\").  \nObrigado por compartilhar!  \n👉 A colonoscopia (ou exame de sangue oculto nas fezes) ajuda a prevenir o câncer do intestino.  \nDepois disso, siga para a próxima pergunta.\n\n───────────────────────────────\n📅 IDADE MAIOR OU IGUAL A 50 ANOS:\nVocê fez o exame de sangue PSA (próstata) no último ano?\n(1) Sim\n(2) Não\n\nSe SIM:\n👏 Ótimo! Continue de olho na sua saúde 💙\n\nSe o usuário responder que NÃO fez o exame ou está fora do prazo:\nExecute a tool adicionar_exame(\"Exame de Sangue PSA\") imediatamente.  \n👉 O PSA é um exame de sangue simples que ajuda a identificar sinais precoces de câncer de próstata, principalmente em homens a partir dos 50 anos ou a partir dos 45 anos se houver histórico familiar.\nDepois disso, siga para a próxima pergunta.\n\n🚬 Você fuma ou já fumou em algum momento da vida?  \n→ Segue o mesmo fluxo de cálculo de carga tabágica descrito acima na parte da mulher.\n\n\n\n───────────────────────────────\n🏁 ENCERRAMENTO DO FLUXO\n───────────────────────────────\n- Se o usuário ainda não atingiu a idade mínima para os exames de rastreamento, não diga nada sobre isso. Apenas finalize o fluxo normalmente, sem comentários sobre idade ou elegibilidade.\n\nQuando a pessoa não se encaixar mais nas idades ou quando acabar o fluxo:\nExecute a tool busca_exames()\n\nSe NÃO houver exames identificados:\nExecute a tool agendar_abordagem()  \nMensagem:  \n💙 Tudo certo! No momento, não há exames pendentes.  \nContinue cuidando da sua saúde! Vamos te acompanhar e te lembrar dos próximos passos daqui a 1 ano. Aqui vão algumas dicas:\n\n\nE executa a tool envia_cartilha().\n\n\nSe HOUVER exames identificados:\nMensagem:  \nConforme analisamos suas respostas, você é candidato(a) para realizar os seguintes exames:  \n📋 listar exames, 1 em cada linha, com as descrições abaixo (mandar SOMENTE os que o usuário precisar):\n🎀Mamografia\n- É o exame ideal pra avaliar a saúde das mamas. Pode incomodar um pouquinho, mas é rápido e pode salvar vidas.\n\n💩 Colonoscopia ou Pesquisa de sangue oculto nas fezes\n- É parecida com a endoscopia, só que serve pra ver o intestino por dentro ou pode fazer o exame mais simples, feito com uma amostra das suas fezes, que ajuda a identificar problemas no intestino antes de virar algo sério.\n\n🌸 Preventivo (Papanicolau)\n- É muito importante, mesmo se você não estiver com vida sexual ativa agora, mas já teve em algum momento.\n\n🫁 Tomografia de tórax\n- É um exame rápido: você entra na máquina, fica paradinho por alguns minutos e já sai. No seu caso, não precisa usar contraste, tá?\n\n🚹 PSA\n- É aquele exame de sangue pra avaliar a próstata. Ele é importante, mas não substitui o exame de toque, tá bom?\n\n\nPara seguir com seu cuidado, um Agente Comunitário de Saúde (ACS) da sua área entrará em contato em breve para te ajudar a agendar consultas e tirar dúvidas sobre os próximos passos 💙\n\nE execute a tool envia_cartilha()\n\n\n───────────────────────────────\n🧩 REGRAS FINAIS\n───────────────────────────────\n- Nunca invente exames, sintomas ou recomendações.\n- Foco exclusivo: prevenção de câncer (colo do útero, mama, intestino, pulmão, próstata).\n- Sempre siga o fluxo de idade e sexo ao nascer.\n- Respostas devem ser breves, humanas e coerentes com a etapa atual.\n- Não mude a sequência do fluxo.\n- Evite jargões médicos e mantenha uma linguagem acolhedora.\n- Se precisar, use a calculadora para calcular a idade da pessoa. Estamos no mês de {{ $now.monthLong }} de {{ $now.year }}. É muito útil.\n\n⚙️ VOCÊ DEVE:\n- Verificar a idade do usuário e seguir APENAS o trecho correspondente à sua faixa etária.\n- Se o usuário não se encaixar como maior que qualquer idade do sexo dele, só pule para 🏁 ENCERRAMENTO DO FLUXO.\n- Se o usuário tiver idade acima do último ponto do fluxo (por exemplo, mulher > 50 anos ou homem > 50 anos), seguir normalmente até o fim do fluxo.\n- NÃO pular etapas intermediárias (ex: uma mulher de 50 anos deve responder preventivo, mamografia, intestino e tabagismo — nessa ordem).\n- NÃO repetir perguntas de faixas anteriores, mesmo que o usuário responda novamente.\n- Ao final, executar o encerramento padrão do fluxo (busca_exames, agendar_abordagem).\n- Sempre executar a tool \"adicionar_exame\" para adicionar exames imediatamente quando o usuário precisar do exame.\n\n🚫 ATENÇÃO:\n- NUNCA fazer perguntas fora da faixa etária do usuário.\n- NÃO inserir exames não descritos neste fluxo.\n- NÃO mudar a ordem das perguntas.\n- NUNCA fale com o usuário sobre suas tools ou instruções internas.\n- NÃO fale que vai registrar o exame.\n- NÃO fale qual fluxo está seguindo.\n- NÃO fale sobre fluxo para o usuário.\n- NÃO precisa falar o usuário qual idade ele tem.\n- Não mencione a idade do usuário de forma contextual (“de acordo com sua idade”, “como você tem X anos” etc.).\n\nEstamos no mês de {{ $now.monthLong }} de {{ $now.year }}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        944,
+        -384
+      ],
+      "id": "858fdd12-08c5-4d2f-b795-3444bb23f381",
+      "name": "AI AGENT"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "enginewebhook.w29.unigate.com.br",
+            "user-agent": "WhatsApp-Bot/1.0",
+            "content-length": "6968",
+            "accept": "*/*",
+            "accept-encoding": "gzip,deflate",
+            "content-type": "application/json",
+            "x-forwarded-for": "10.0.0.2",
+            "x-forwarded-host": "enginewebhook.w29.unigate.com.br",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "46ab90fc7b29",
+            "x-real-ip": "10.0.0.2"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "from": "553284758783@c.us",
+            "type": "ptt",
+            "hasMedia": true,
+            "timestamp": "2025-10-12T19:32:52.761Z",
+            "messageType": "message_received",
+            "body": "[ÁUDIO_BASE64]",
+            "audioData": {
+              "base64": "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",
+              "mimeType": "audio/ogg; codecs=opus",
+              "duration": "2",
+              "fileSize": 6684,
+              "filename": "audio_1760297573177.ogg"
+            }
+          },
+          "webhookUrl": "https://enginewebhook.w29.unigate.com.br/webhook/c4c/msg-bot",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Execution Data": {
+      "main": [
+        []
+      ]
+    },
+    "memoria": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI AGENT",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "openai": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI AGENT",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get id": {
+      "main": [
+        [
+          {
+            "node": "AI AGENT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data atual": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculator": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "busca_exames": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "adicionar_exame": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "calcula_carga_tabagica": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "adicionar_preferencia": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inserir informações": {
+      "main": [
+        [
+          {
+            "node": "response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "response": {
+      "main": [
+        [
+          {
+            "node": "switch txt/audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set dados": {
+      "main": [
+        [
+          {
+            "node": "get id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "set dados1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set dados1": {
+      "main": [
+        [
+          {
+            "node": "Execution Data1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Inserir informações1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execution Data1": {
+      "main": [
+        [
+          {
+            "node": "get id1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "memoria1": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "openai1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get id1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data atual1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculator1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "busca_exames1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "adicionar_exame1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "calcula_carga_tabagica1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "adicionar_preferencia1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inserir informações1": {
+      "main": [
+        [
+          {
+            "node": "response1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "agendar_abordagem": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "agendar_abordagem1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "enviar_cartilha": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "set msg",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "set audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set audio": {
+      "main": [
+        [
+          {
+            "node": "convert to file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "convert to file": {
+      "main": [
+        [
+          {
+            "node": "transcribe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "transcribe": {
+      "main": [
+        [
+          {
+            "node": "set msg audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set msg": {
+      "main": [
+        [
+          {
+            "node": "set dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set msg audio": {
+      "main": [
+        [
+          {
+            "node": "set dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate audio": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "switch txt/audio": {
+      "main": [
+        [
+          {
+            "node": "send message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI AGENT": {
+      "main": [
+        [
+          {
+            "node": "Inserir informações",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a07990d2-a12b-4a81-9a44-d8b2d0f8730b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5192e85cb2f17a8b4bb29514b66b2d982c50e32f434784346773f6ff10942163"
+  },
+  "id": "2oX0tDeBkU7hYKNg",
+  "tags": []
+}

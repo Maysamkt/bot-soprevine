@@ -2,7 +2,7 @@
 
 ## 📋 Sobre
 
-Sistema inteligente de rastreio de pacientes assintomáticos para prevenção de cancêr via WhatsApp com integração n8n.
+Previne+ é um assistente virtual de saúde que democratiza o acesso à prevenção do câncer através do WhatsApp — uma plataforma que 98% dos brasileiros já conhecem e confiam.
 
 Por que PREVINA+?
 
@@ -18,23 +18,38 @@ Por que PREVINA+?
 
 •✅ Positivo - não assusta (não usa a palavra "câncer" que pode afastar as pessoas da solução)
 
-## 🚀 Como Executar
+![Como Funciona](assets\como-funciona-previne+.png)
 
-# Clone o repositório
+# 🚀 Como Executar
+
+## Clone o repositório e acesse a pasta
 
 git clone https://github.com/Maysamkt/bot-soprevine
 cd bot-soprevine
 
-1. instale as dependências `npm install`
-2. Configure as variáveis no `.env.example`
+---
+
+1. instale as dependências
+   > `npm install`
+2. Configure as variáveis no
+
+   > `.env.example`
+
 3. Execute em 2 terminais
-   Terminal 1 - Seu servidor:
-   `npm start`
-   Terminal 2 - Ngrok:
-   `npm run ngrok`
+
+   > Terminal 1 - Seu servidor:
+   >
+   > > `npm start`
+
+   > Terminal 2 - Ngrok:
+   >
+   > > `npm run ngrok`
+
 4. Escaneie o QR Code no WhatsApp
 
-## 🔧 Tecnologias
+---
+
+## 🔧 Tecnologias utilizadas
 
 - Node.js + Express
 - WhatsApp Web.js
@@ -44,3 +59,23 @@ cd bot-soprevine
 ## 🛡️ Segurança
 
 Todas as credenciais protegidas por variáveis de ambiente.
+
+## 📤 N8N Docs
+
+- Banco de Dados - Diagrama
+
+  ![Diagrama do BD](assets\diagrama.jpeg)
+
+  ***
+
+- Integração texto-áudio
+
+![Fluxo de Processamento texto-audio/audio-texto](assets\text-audio.png)
+
+- Fluxo do Agente
+
+  ![Fluxo do Agente](assets\previne-bot.png)
+
+- Acesse o protótipo funcional através do link abaixo
+
+  https://enginewebhook.w29.unigate.com.br/webhook/5666f280-4ec4-4a93-8a3c-a8c0854b5ec1/chat
