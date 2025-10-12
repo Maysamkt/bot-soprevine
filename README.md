@@ -18,14 +18,14 @@ Por que PREVINA+?
 
 •✅ Positivo - não assusta (não usa a palavra "câncer" que pode afastar as pessoas da solução)
 
-![Como Funciona](assets\como-funciona-previne+.png)
+![Como Funciona](assets/como-funciona-previne+.png)
 
 # 🚀 Como Executar
 
 ## Clone o repositório e acesse a pasta
 
-git clone https://github.com/Maysamkt/bot-soprevine
-cd bot-soprevine
+* git clone https://github.com/Maysamkt/bot-soprevine
+* cd bot-soprevine
 
 ---
 
@@ -64,18 +64,28 @@ Todas as credenciais protegidas por variáveis de ambiente.
 
 - Banco de Dados - Diagrama
 
-  ![Diagrama do BD](assets\diagrama.jpeg)
+  ![Diagrama do BD](assets/diagrama.jpeg)
 
   ***
 
 - Integração texto-áudio
 
-![Fluxo de Processamento texto-audio/audio-texto](assets\text-audio.png)
+![Fluxo de Processamento texto-audio/audio-texto](assets/text-audio.png)
 
 - Fluxo do Agente
 
-  ![Fluxo do Agente](assets\previne-bot.png)
+  ![Fluxo do Agente](assets/previne-bot.png)
 
 - Acesse o protótipo funcional através do link abaixo
 
   https://enginewebhook.w29.unigate.com.br/webhook/5666f280-4ec4-4a93-8a3c-a8c0854b5ec1/chat
+
+  ---
+
+- Esse projeto foi desenvolvido para o Hackathon SBOC Code4Cancer 2025 organizado pela Hackathon Brasil
+- Equipe 29
+- Aline Miyaki  - UX/UI Designer
+- Fabiano Camara - Desenvolvedor
+- Lays Costa - Especialista/Oncologista
+- Maysa Santos - Desenvolvedora/Marketing
+- Romênia - Negócios
