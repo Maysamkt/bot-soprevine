@@ -2,20 +2,32 @@ const express = require("express");
 const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const cors = require("cors");
+const fetch = require("node-fetch");
 
 const app = express();
-const port = 3000;
+const port = process.env.SERVER_PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 
 let whatsappClient;
 let isWhatsAppReady = false;
-let isLoggedIn = false;
+
+// ⬇️ VARIÁVEIS PROTEGIDAS - vêm do .env
+const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL;
+const TEST_PHONE = process.env.TEST_PHONE;
+// const ADMIN_PHONE = process.env.ADMIN_PHONE;
+
+// ⬇️ VALIDA SE AS VARIÁVEIS EXISTEM
+if (!N8N_WEBHOOK_URL) {
+  console.warn("⚠️  N8N_WEBHOOK_URL não configurada no .env");
+}
 
 // ⬇️ INICIALIZAR WHATSAPP-WEB.JS
 whatsappClient = new Client({
-  authStrategy: new LocalAuth(), // ⬅️ Salva sessão automaticamente
+  authStrategy: new LocalAuth({
+    clientId: process.env.WHATSAPP_SESSION_NAME || "soprevine-demo",
+  }),
   puppeteer: {
     executablePath:
       "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
@@ -24,7 +36,7 @@ whatsappClient = new Client({
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
     ],
-    headless: false, // ⬅️ Mostra o navegador
+    headless: false,
   },
   webVersionCache: {
     type: "remote",
@@ -43,7 +55,6 @@ whatsappClient.on("qr", (qr) => {
 // ⬇️ QUANDO CONECTADO
 whatsappClient.on("ready", () => {
   isWhatsAppReady = true;
-  isLoggedIn = true;
   console.log("✅ WhatsApp conectado e pronto!");
   console.log("🚀 Pronto para enviar mensagens!");
 });
@@ -51,31 +62,65 @@ whatsappClient.on("ready", () => {
 // ⬇️ QUANDO DESCONECTADO
 whatsappClient.on("disconnected", (reason) => {
   isWhatsAppReady = false;
-  isLoggedIn = false;
   console.log("❌ WhatsApp desconectado:", reason);
 });
 
-// ⬇️ ESCUTAR MENSAGENS RECEBIDAS
 whatsappClient.on("message", async (message) => {
-  if (message.from === "status@broadcast") return; // Ignorar status
+  // ⬇️ IGNORAR GRUPOS E STATUS
+  if (message.from.includes("@g.us") || message.from === "status@broadcast") {
+    console.log(`🚫 Ignorando mensagem de grupo/status: ${message.from}`);
+    return;
+  }
 
   console.log(`📩 Mensagem recebida de ${message.from}: ${message.body}`);
 
-  // ⬇️ ENVIAR PARA n8n (webhook)
+  // ⬇️ ENVIAR PARA n8n CLOUD
+  await enviarParaN8N({
+    from: message.from,
+    body: message.body,
+  });
+});
+
+// ⬇️ FUNÇÃO PARA ENVIAR MENSAGENS PARA n8n
+async function enviarParaN8N(mensagemData) {
   try {
-    // await fetch("http://localhost:5678/webhook/receive-message", {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify({
-    //     from: message.from,
-    //     body: message.body,
-    //     timestamp: message.timestamp
-    //   }),
-    // });
-    console.log("📨 Mensagem encaminhada para n8n (simulado)");
+    console.log(`📨 Enviando mensagem para n8n...`);
+
+    const response = await fetch(N8N_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": "WhatsApp-Bot/1.0",
+      },
+      body: JSON.stringify({
+        from: mensagemData.from,
+        body: mensagemData.body,
+        timestamp: new Date().toISOString(),
+        type: "message_received",
+      }),
+    });
+
+    if (response.ok) {
+      console.log("✅ Mensagem enviada para n8n cloud");
+    } else {
+      console.log("❌ Erro n8n - Status:", response.status);
+    }
   } catch (error) {
-    console.log("❌ Erro ao enviar para n8n:", error);
+    console.log("❌ Falha ao conectar com n8n:", error.message);
   }
+}
+
+// ⬇️ ESCUTAR MENSAGENS RECEBIDAS
+whatsappClient.on("message", async (message) => {
+  if (message.from === "status@broadcast") return;
+
+  console.log(`📩 Mensagem recebida de ${message.from}: ${message.body}`);
+
+  // ⬇️ ENVIAR PARA n8n CLOUD
+  await enviarParaN8N({
+    from: message.from,
+    body: message.body,
+  });
 });
 
 // ⬇️ INICIALIZAR CLIENTE
@@ -89,16 +134,14 @@ async function enviarMensagemSegura(phone, message) {
     throw new Error("WhatsApp client não está inicializado");
   }
 
-  if (!isWhatsAppReady || !isLoggedIn) {
+  if (!isWhatsAppReady) {
     throw new Error("WhatsApp não está pronto. Aguarde a conexão...");
   }
 
   try {
-    // Formatar número (remove tudo que não é dígito e adiciona @c.us)
     const formattedPhone = phone.replace(/\D/g, "") + "@c.us";
-    console.log(`📤 Enviando para ${formattedPhone}: ${message}`);
+    console.log(`📤 Enviando para ${formattedPhone}`);
 
-    // ⬇️ ENVIAR MENSAGEM - MÉTODO CORRETO PARA whatsapp-web.js
     const result = await whatsappClient.sendMessage(formattedPhone, message);
     console.log("✅ Mensagem enviada com sucesso!");
 
@@ -146,11 +189,9 @@ app.get("/status", (req, res) => {
   res.json({
     status: whatsappClient ? "inicializado" : "não inicializado",
     ready: isWhatsAppReady,
-    loggedIn: isLoggedIn,
-    message:
-      isWhatsAppReady && isLoggedIn
-        ? "✅ Pronto para enviar mensagens"
-        : "⏳ Aguardando conexão do WhatsApp...",
+    message: isWhatsAppReady
+      ? "✅ Pronto para enviar mensagens"
+      : "⏳ Aguardando conexão do WhatsApp...",
   });
 });
 
@@ -158,9 +199,17 @@ app.get("/status", (req, res) => {
 app.post("/test-message", async (req, res) => {
   try {
     const { phone } = req.body;
-    const testPhone = phone || "5562992767536"; // ⬅️ Use seu número
-    const testMessage =
-      "🚀 Teste do sistema de alertas - Mensagem de confirmação";
+    const testPhone = phone || TEST_PHONE; // Coloque um número real na variável de ambiente
+
+    if (!testPhone) {
+      return res.status(400).json({
+        success: false,
+        error: "Número de teste não configurado",
+        message: "Configure TEST_PHONE no arquivo .env",
+      });
+    }
+
+    const testMessage = "🚀 Sistema Soprevine - Teste de funcionamento";
 
     console.log(`🧪 Enviando mensagem de teste para: ${testPhone}`);
 
@@ -170,34 +219,13 @@ app.post("/test-message", async (req, res) => {
       success: true,
       message: "Mensagem de teste enviada com sucesso!",
       messageId: result.id._serialized,
-      phone: testPhone,
+      phone: "***" + testPhone.slice(-4),
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       error: "Falha no teste: " + error.message,
     });
-  }
-});
-
-// ⬇️ ROTA PARA OBTER INFORMAÇÕES DO CLIENTE
-app.get("/client-info", async (req, res) => {
-  try {
-    if (!whatsappClient) {
-      return res.json({ error: "Cliente não inicializado" });
-    }
-
-    const info = await whatsappClient.getInfo();
-
-    res.json({
-      wid: info.wid._serialized,
-      platform: info.platform,
-      phone: info.wid.user,
-      name: info.pushname,
-      connected: isWhatsAppReady,
-    });
-  } catch (error) {
-    res.json({ error: error.message });
   }
 });
 
@@ -208,7 +236,6 @@ app.get("/health", (req, res) => {
     timestamp: new Date().toISOString(),
     service: "WhatsApp Web.js API",
     whatsAppReady: isWhatsAppReady,
-    loggedIn: isLoggedIn,
   });
 });
 
@@ -217,15 +244,29 @@ app.listen(port, () => {
   console.log(`✅ API WhatsApp Web.js rodando na porta ${port}`);
   console.log(`🌐 Health check: http://localhost:${port}/health`);
   console.log(`📊 Status: http://localhost:${port}/status`);
-  console.log(`🧪 Teste: POST http://localhost:${port}/test-message`);
   console.log(`📱 Aguardando QR Code...`);
 });
 
-// ⬇️ ENCERRAMENTO GRACIOSO
 process.on("SIGINT", async () => {
   console.log("🔄 Encerrando WhatsApp client...");
   if (whatsappClient) {
     await whatsappClient.destroy();
   }
   process.exit(0);
+});
+
+// ⬇️ VERIFICAÇÃO DE SEGURANÇA
+app.use((req, res, next) => {
+  // Remove headers sensíveis
+  res.removeHeader("X-Powered-By");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  next();
+});
+
+// ⬇️ ROTA 404 PERSONALIZADA
+app.use((req, res) => {
+  res.status(404).json({
+    error: "Endpoint não encontrado",
+    service: "Sistema Soprevine",
+  });
 });

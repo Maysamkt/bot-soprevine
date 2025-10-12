@@ -1,1 +1,17 @@
-/node_modules
+# Arquivos sensíveis
+.env
+.env.local
+.env.production
+
+# Logs e sessões
+tokens/
+chrome_session/
+*.log
+
+# Node modules
+node_modules/
+npm-debug.log*
+
+# Ngrok
+.ngrok2/
+ngrok.yml
