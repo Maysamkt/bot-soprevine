@@ -88,4 +88,4 @@ Todas as credenciais protegidas por variáveis de ambiente.
 - Fabiano Camara - Desenvolvedor
 - Lays Costa - Especialista/Oncologista
 - Maysa Santos - Desenvolvedora/Marketing
-- Romênia - Negócios
+
